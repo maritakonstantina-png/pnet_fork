@@ -31,5 +31,5 @@ for trait in immune_traits:
                     -o "+LOGDIR+" \
                     -e "+LOGDIR+" \
                     -v score_type=\""+score+"\",immune_traits=\""+trait+"\" \
-                    /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/PBS_scripts/all_cancers_prediction_bc_all_scores.sh"
+                    /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/pbs_script.sh"
         os.system(command)
