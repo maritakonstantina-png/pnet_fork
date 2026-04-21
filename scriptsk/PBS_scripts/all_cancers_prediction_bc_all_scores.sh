@@ -14,7 +14,7 @@ source /shares/CIBIO-Storage/BCG/scratch/kmarita/conda/etc/profile.d/conda.sh
 conda activate pnet
 
 # SETUP SCRIPT OUTPUT FOLDER
-mkdir -p '/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/outputs_pnet'
+mkdir -p '/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet'
 
 # Look for a free GPU
 echo "Looking for a GPU ... "

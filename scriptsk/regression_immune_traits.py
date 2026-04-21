@@ -18,7 +18,7 @@ score_type = sys.argv[2]
 
 input_dir = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/aggregated_scores"
 immune_trait_path = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/long_matched_immune_traits_EU.csv"
-output_dir = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/outputs_pnet"
+output_dir = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet"
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
