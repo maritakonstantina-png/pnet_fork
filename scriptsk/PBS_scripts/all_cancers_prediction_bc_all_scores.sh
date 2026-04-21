@@ -3,7 +3,7 @@
 # RESOURCES
 
 #PBS -l select=1:ncpus=9:ngpus=1:mem=230gb:host=hpc3-g05-n02
-#PBS -l walltime=20:00:00
+#PBS -l walltime= 05:00:00
 #PBS -q cibioGPUQ
 
 # MODULES LOADING
@@ -37,7 +37,7 @@ echo "Assigned to GPU: $CUDA_VISIBLE_DEVICES"
 start=$(date)
 
 # SCRIPT
-python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py"
+python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py" >> "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet/regression_immune_traits_$PBS_JOBID.log" 2>&1
 
 # NOTIFY END OF SCRIPT
 curl -d "Done $PBS_JOBID ($immune_traits) on cibioGPUQ launched at $start, finished at $(date)" ntfy.sh/kmarita
