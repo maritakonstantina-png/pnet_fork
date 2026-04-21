@@ -37,7 +37,7 @@ echo "Assigned to GPU: $CUDA_VISIBLE_DEVICES"
 start=$(date)
 
 # SCRIPT
-python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py"
+python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py
 
 # NOTIFY END OF SCRIPT
 curl -d "Done $PBS_JOBID $(immune_traits) on cibioGPUQ launched at $start, finished at $(date)" ntfy.sh/kmarita
