@@ -3,7 +3,7 @@
 # RESOURCES
 
 #PBS -l select=1:ncpus=9:ngpus=1:mem=230gb:host=hpc3-g05-n02
-#PBS -l walltime= 05:00:00
+#PBS -l walltime= 5:00:00
 #PBS -q cibioGPUQ
 
 # MODULES LOADING
