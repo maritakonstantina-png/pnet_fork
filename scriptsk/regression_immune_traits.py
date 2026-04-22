@@ -2,7 +2,7 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-import pickle
+#import pickle
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, r2_score
@@ -13,40 +13,26 @@ sys.path.append(os.path.dirname(__file__)+"/../src/")
 from pnet import Pnet
 from util import util
 
-immune_trait = sys.argv[1]
-score_type = sys.argv[2]
+immune_trait = sys.argv[0]
+score_type = sys.argv[1]
 
 input_dir = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/aggregated_scores"
 immune_trait_path = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/long_matched_immune_traits_EU.csv"
-output_dir = "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet"
+output_dir = sys.argv[2]
 
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 
-# Check if checkpoint exists
-checkpoint_path = f"{output_dir}/data.pickle"
-if os.path.exists(checkpoint_path):
-    with open(checkpoint_path, "rb") as f:
-        checkpoint = pickle.load(f)
-    genetic_data = checkpoint['genetic_data']
-    immune_traits = checkpoint['immune_traits']
-    print("Loaded input data and target from checkpoint.")
-else:
-    genetic_data = {}
-    for agg_func in ["avg", "sd", "max", "min", "delta"]:
-        scores_hap1, scores_hap2 = util.load_hap_scores(f"{input_dir}/{score_type}/{agg_func}/", agg_func, score_type)
-        genetic_data[f"{agg_func}_hap1"] = scores_hap1
-        genetic_data[f"{agg_func}_hap2"] = scores_hap2
+genetic_data = {}
+for agg_func in ["avg", "sd", "max", "min", "delta"]:
+    scores_hap1, scores_hap2 = util.load_hap_scores(f"{input_dir}/{score_type}/{agg_func}/", agg_func, score_type)
+    genetic_data[f"{agg_func}_hap1"] = scores_hap1
+    genetic_data[f"{agg_func}_hap2"] = scores_hap2
 
-    immune_traits = pd.read_csv(immune_trait_path).dropna().set_index("tcga_patient_id")
-    immune_traits = immune_traits.apply(pd.to_numeric, errors='coerce').dropna()
+immune_trait = pd.read_csv(immune_trait_path).dropna().set_index("tcga_patient_id")
+immune_trait = immune_trait.apply(pd.to_numeric, errors='coerce').dropna()
 
-# Save data checkpoint
-    with open(f"{output_dir}/data.pickle", "wb") as f:
-     pickle.dump({'genetic_data': genetic_data, 'immune_traits': immune_traits}, f)
 
 # Cross-Validation Setup
-samples = np.array(immune_traits.index.tolist())
+samples = np.array(immune_trait.index.tolist())
 n_splits = 5
 kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
 
@@ -63,7 +49,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
        
     model, train_scores, test_scores, train_dataset, test_dataset = Pnet.run(
         genetic_data, 
-        immune_traits, 
+        immune_trait, 
         seed=fold,           # setting seed per fold so every fold has a unique seed (random initialization, data shuffling etc.)
         dropout=0.2, 
         lr=1e-4,             #  lower LR for regression, more frequent evaluation 
@@ -73,8 +59,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
         early_stopping=True, 
         train_inds=train_sample,
         test_inds=test_sample, 
-        input_dropout=0.5, 
-        task_type="regression"
+        input_dropout=0.5
     )
 
     # Evaluation
@@ -82,7 +67,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     fold_results = Pnet.evaluate_and_interpret(
         model,
         test_dataset,
-        immune_traits.columns.values
+        immune_trait.columns.values
     )
     
     # results
@@ -107,8 +92,7 @@ pd.DataFrame({
     'value': [overall_mse, overall_r2, overall_pearson]
 }).to_csv(f"{output_dir}/regression_metrics.csv", index=False)
 
-with open(f"{output_dir}/fold_results.pickle", "wb") as f:
-    pickle.dump(results_accumulator, f)
+pd.DataFrame({'y_true': results_accumulator['y_true'], 'y_pred': results_accumulator['y_pred']}).to_csv(f"{output_dir}/fold_predictions.csv", index=False)
 
 # Plotting: True vs Predicted
 df = pd.DataFrame({
