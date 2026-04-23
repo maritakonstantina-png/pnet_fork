@@ -106,7 +106,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     all_gene_importances.append(gene_importances)
     #all_layer_importance_scores.append(layer_importance_scores) also its a list of dfs so needs diff saving
 
-#outside of for loop 
+#outside the for loop 
 #average the importances and save them 
 avg_gene_feature_importances = pd.concat(all_gene_feature_importances).groupby(level=0).mean()
 avg_additional_feature_importances = pd.concat(all_additional_feature_importances).groupby(level=0).mean()
