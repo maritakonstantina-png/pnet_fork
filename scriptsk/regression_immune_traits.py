@@ -2,12 +2,11 @@ import sys
 import os
 import pandas as pd
 import numpy as np
-#import pickle
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, r2_score
 import seaborn as sns
-
+import time
 
 sys.path.append(os.path.dirname(__file__)+"/../src/")
 from pnet import Pnet
@@ -68,6 +67,9 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
         input_dropout=0.5
     )
     
+    # Move model to CPU for prediction and interpretation
+    model.to('cpu')
+    
     x_train = train_dataset.x
     y_train = train_dataset.y
     additional_train = train_dataset.additional  # because on genetic_data i have more than one inputs(avg, min etc.)
@@ -75,6 +77,8 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     y_test = test_dataset.y
     additional_test = test_dataset.additional
 
+    print(f"Starting forward pass on the cpu for fold {fold}")
+    startforw = time.time()
     #predict. test_datset.x is assigned the first key pnet receives which is avg_hap1 and the rest 9 are assigned to test_dataset.additional
     y_pred = model.predict(test_dataset.x, test_dataset.additional).detach()
     df = pd.DataFrame(index=test_dataset.input_df.index)
@@ -93,6 +97,9 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     layer_list = [gene_feature_importances, additional_feature_importances, gene_importances] + layer_importance_scores
     layer_list_names = ['gene_feature', 'additional_feature', 'gene'] + [f'layer_{i}' for i in range(5)]
     layer_list_dict = dict(zip(layer_list_names, layer_list))
+
+    endforw = time.time()
+    print(f"Finished forward pass and interpretation for fold {fold} in {endforw - startforw:.2f} seconds.")
 
      # save the importance scores for the current fold
     gene_feature_importances.to_csv(f"{output_dir}/fold_{fold}_gene_feature_importances.csv")
