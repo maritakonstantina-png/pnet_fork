@@ -64,7 +64,8 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
         early_stopping=True, 
         train_inds=train_sample,
         test_inds=test_sample, 
-        input_dropout=0.5
+        input_dropout=0.5,
+        loss_fn = nn.CrossEntropyLoss
     )
     
     # Move model to CPU for prediction and interpretation
