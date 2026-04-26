@@ -39,6 +39,7 @@ all_gene_feature_importances = []
 all_additional_feature_importances = []
 #all_layer_importance_scores = []
 all_dfs =[] #both y_test and y_pred
+fold_metrics_list = [] # to store metrics per fold
 
 
 #cross validation 
@@ -65,10 +66,9 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
         train_inds=train_sample,
         test_inds=test_sample, 
         input_dropout=0.5,
-        loss_fn = nn.CrossEntropyLoss
     )
     
-    # Move model to CPU for prediction and interpretation
+    # move model to CPU for prediction and interpretation
     model.to('cpu')
     
     x_train = train_dataset.x
@@ -87,6 +87,19 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     df['y_pred'] = y_pred
     #connect the empty list to the values of y_test and y_pred
     all_dfs.append(df)
+    
+    # Calculate metrics for this specific fold
+    fold_r2 = r2_score(df['y_test'], df['y_pred'])
+    fold_pearson = df['y_test'].corr(df['y_pred'], method='pearson')
+    fold_spearman = df['y_test'].corr(df['y_pred'], method='spearman')
+    
+    fold_metrics_list.append({
+        'Fold': fold,
+        'R-squared': fold_r2,
+        'Pearson_Correlation': fold_pearson,
+        'Spearman_Correlation': fold_spearman
+    })
+    print(f"Fold {fold} Metrics - R2: {fold_r2:.4f}, Pearson: {fold_pearson:.4f}, Spearman: {fold_spearman:.4f}")
 
     #calculates the contribution score of each gene = importance. It aggregates these scores at a feature level(the inmportance of avg_hap1)
     #then at a gene level zand then at the pathway level (the importance of the hidden layer nodes, which represent gene sets or pathways)
@@ -130,12 +143,31 @@ avg_gene_importances.to_csv(f"{output_dir}/gene_importances.csv")
 final_predictions = pd.concat(all_dfs)
 final_predictions.to_csv(f"{output_dir}/final_predictions_all_folds.csv")
 
+# Calculate model accuracy metrics
+r2 = r2_score(final_predictions['y_test'], final_predictions['y_pred'])
+pearson_corr = final_predictions['y_test'].corr(final_predictions['y_pred'], method='pearson')
+spearman_corr = final_predictions['y_test'].corr(final_predictions['y_pred'], method='spearman')
+
+metrics_df = pd.DataFrame({
+    'Metric': ['R-squared', 'Pearson_Correlation', 'Spearman_Correlation'],
+    'Value': [r2, pearson_corr, spearman_corr]
+})
+
+# Save metrics to CSV
+metrics_df.to_csv(f"{output_dir}/model_accuracy_metrics.csv", index=False)
+
+# Save each fold metrics
+fold_metrics_df = pd.DataFrame(fold_metrics_list)
+fold_metrics_df.to_csv(f"{output_dir}/per_fold_metrics.csv", index=False)
+print("\n--- Model Per-Fold Accuracy Metrics ---")
+print(fold_metrics_df.to_string(index=False))
+print("-" * 39)
 
 #ploot correlation between true and pred
 sns.regplot(data=final_predictions, x='y_test', y='y_pred', color='#41B6E6')
 #calculation of correlation using pearson
-correlation_coefficient = round(final_predictions['y_test'].corr(final_predictions['y_pred']), 2)
-plt.text(0.95, 0.05, f'Correlation: {correlation_coefficient}', ha='right', va='center', transform=plt.gca().transAxes)
+correlation_coefficient = round(pearson_corr, 2)
+plt.text(0.95, 0.05, f'Pearson r: {correlation_coefficient}', ha='right', va='center', transform=plt.gca().transAxes)
 plt.plot(final_predictions['y_test'], final_predictions['y_test'], color='#FFA300', linestyle='--', label='Diagonal Line')
 sns.despine()
 plt.show()
