@@ -20,8 +20,12 @@ source /shares/CIBIO-Storage/BCG/scratch/kmarita/conda/etc/profile.d/conda.sh
 
 conda activate pnet
 
+# GET START TIME
+start=$(date)
+timestamp=$(date +"%Y%m%d_%H%M%S")
+
 # SETUP SCRIPT OUTPUT FOLDER
-output_dir='/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/'$immune_trait'/'$score_type'/script_output/'
+output_dir='/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/'$immune_trait'/'$score_type'/script_output_'$timestamp'/'
 mkdir -p $output_dir
 
 # Look for a free GPU
