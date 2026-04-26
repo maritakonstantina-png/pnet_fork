@@ -56,7 +56,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
         genetic_data, 
         immune_trait, 
         seed=fold,           # setting seed per fold so every fold has a unique seed (random initialization, data shuffling etc.)
-        dropout=0.2, 
+        dropout=0.1, # was 0.2 before
         lr=1e-4,             # lower LR for regression, more frequent evaluation 
         weight_decay=1e-3,
         batch_size=64,      
@@ -64,7 +64,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
         early_stopping=True, 
         train_inds=train_sample,
         test_inds=test_sample, 
-        input_dropout=0.5,
+        input_dropout=0.2,  #was 0.5 before
     )
     
     # move model to CPU for prediction and interpretation
@@ -85,6 +85,9 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     df['y_pred'] = y_pred
     #connect the empty list to the values of y_test and y_pred
     all_dfs.append(df)
+    
+    # Save predictions for this specific fold
+    df.to_csv(f"{output_dir}/fold_{fold}_predictions.csv")
     
 
     #calculates the contribution score of each gene = importance. It aggregates these scores at a feature level(the inmportance of avg_hap1)
