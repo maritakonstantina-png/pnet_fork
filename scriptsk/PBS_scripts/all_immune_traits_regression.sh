@@ -2,7 +2,7 @@
 
 # RESOURCES
 
-#PBS -l select=1:ncpus=9:ngpus=1:mem=230gb
+#PBS -l select=1:ncpus=8:ngpus=1:mem=230gb
 #PBS -l walltime=05:00:00
 #PBS -q commonGPUQ
 
