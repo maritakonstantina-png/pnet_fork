@@ -2,24 +2,24 @@ import os
 import time
 
 immune_traits = [
-  "nk_cells"]
- # "t_helper_cells" ,
-  #"cd8_t_cells" ,
- # "tfh_cells",
-  #"amp1" ,
- # "term_cells"
- # "a_dc" ,
- # "tcm_cells" ,
-  #"eosinophils",
-  #"interferon_cluster_21214954" ,
-  #"gp11_immune_ifn" ,
- # "interferon_19272155" ,
- # "th1_cells" ,
- # "neutrophils"  ,
- # "th17_cells" 
- # ]
+  "nk_cells",
+ "t_helper_cells" ,
+ "cd8_t_cells" ,
+ "tfh_cells",
+  "amp1" ,
+  "term_cells"
+  "a_dc" ,
+  "tcm_cells" ,
+  "eosinophils",
+  "interferon_cluster_21214954" ,
+  "gp11_immune_ifn" ,
+  "interferon_19272155" ,
+  "th1_cells" ,
+  "neutrophils"  ,
+  "th17_cells" 
+ ]
 
-score_types = ["PLL"] #,"PLLR"]
+score_types = ["PLL","PLLR"]
 
 for trait in immune_traits: 
     for score in score_types:
