@@ -126,6 +126,6 @@ avg_gene_importances.to_csv(f"{output_dir}/gene_importances.csv")
 #layer_importance_scores.to_csv(f"{output_dir}/layer_importances_scores.csv")
 
 #save y_true and y_predict
-final_predictions = pd.concat(all_dfs)
+final_predictions = pd.concat(all_dfs) # list showing how your model performed on every patient the single time it was asked to predict their score without having seen them in training
 final_predictions.to_csv(f"{output_dir}/final_predictions_all_folds.csv")
 
