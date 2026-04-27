@@ -43,7 +43,7 @@ all_dfs =[] #both y_test and y_pred
 
 #cross validation 
 samples = np.array(immune_trait.index.tolist())
-n_splits = 5
+n_splits = 10 #before it was 5
 kf = KFold(n_splits=n_splits, shuffle=True, random_state =42)
 
 
