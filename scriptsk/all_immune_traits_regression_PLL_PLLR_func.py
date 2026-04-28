@@ -6,7 +6,7 @@ immune_traits = [
  #"t_helper_cells" ,
  #"cd8_t_cells" ,
  #"tfh_cells",
-  #"amp1" ,
+  "apm1" ,
   "tem_cells",
   "a_dc" ],
   #"tcm_cells" ,
