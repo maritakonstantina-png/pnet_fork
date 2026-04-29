@@ -45,7 +45,7 @@ all_metrics = [] # to store metrics per fold
 
 #cross validation 
 samples = np.array(immune_trait.index.tolist())
-n_splits = 10 #before it was 5
+n_splits = 5 #before it was 5
 kf = KFold(n_splits=n_splits, shuffle=True, random_state =42)
 
 
@@ -57,7 +57,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     model, train_scores, test_scores, train_dataset, test_dataset = Pnet.run(
         genetic_data, 
         immune_trait, 
-        seed=fold,           # setting seed per fold so every fold has a unique seed (random initialization, data shuffling etc.)
+        seed=42,       #go back to 42    # setting seed per fold so every fold has a unique seed (random initialization, data shuffling etc.)
         dropout=0.1, # was 0.2 before
         lr=1e-4,             # lower LR for regression, more frequent evaluation 
         weight_decay=1e-3,
