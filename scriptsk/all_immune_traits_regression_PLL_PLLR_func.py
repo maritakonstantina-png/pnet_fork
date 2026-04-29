@@ -8,7 +8,7 @@ immune_traits = [
  #"tfh_cells",
   "apm1" ,
   "tem_cells",
-  "a_dc" ],
+  "a_dc" ]
   #"tcm_cells" ,
   #"eosinophils",
  # "interferon_cluster_21214954" ,
