@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, r2_score
+from scipy.stats import pearsonr, spearmanr
 import seaborn as sns
 import time
 
@@ -39,6 +40,7 @@ all_gene_feature_importances = []
 all_additional_feature_importances = []
 #all_layer_importance_scores = []
 all_dfs =[] #both y_test and y_pred
+all_metrics = [] # to store metrics per fold
 
 
 #cross validation 
@@ -77,7 +79,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     y_test = test_dataset.y
     additional_test = test_dataset.additional
 
-
+    print(f"Starting forward pass on the cpu for fold {fold}")
     #predict. test_datset.x is assigned the first key pnet receives which is avg_hap1 and the rest 9 are assigned to test_dataset.additional
     y_pred = model.predict(test_dataset.x, test_dataset.additional).detach()
     df = pd.DataFrame(index=test_dataset.input_df.index)
@@ -89,6 +91,20 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     # Save predictions for this specific fold
     df.to_csv(f"{output_dir}/fold_{fold}_predictions.csv")
     
+    # Compute metrics for this specific fold
+    pearson_corr, _ = pearsonr(df['y_test'], df['y_pred'])
+    spearman_corr, _ = spearmanr(df['y_test'], df['y_pred'])
+    r2 = r2_score(df['y_test'], df['y_pred'])
+    rmse = mean_squared_error(df['y_test'], df['y_pred']) ** 0.5
+    
+    # Store metrics for this fold
+    all_metrics.append({
+        'Fold': fold,
+        'Pearson_Correlation': pearson_corr,
+        'Spearman_Correlation': spearman_corr,
+        'R-squared': r2,
+        'RMSE': rmse
+    })
 
     #calculates the contribution score of each gene = importance. It aggregates these scores at a feature level(the inmportance of avg_hap1)
     #then at a gene level zand then at the pathway level (the importance of the hidden layer nodes, which represent gene sets or pathways)
@@ -100,6 +116,7 @@ for fold, (train_index, test_index) in enumerate(kf.split(samples)):
     layer_list = [gene_feature_importances, additional_feature_importances, gene_importances] + layer_importance_scores
     layer_list_names = ['gene_feature', 'additional_feature', 'gene'] + [f'layer_{i}' for i in range(5)]
     layer_list_dict = dict(zip(layer_list_names, layer_list))
+
 
      # save the importance scores for the current fold
     gene_feature_importances.to_csv(f"{output_dir}/fold_{fold}_gene_feature_importances.csv")
@@ -129,3 +146,17 @@ avg_gene_importances.to_csv(f"{output_dir}/gene_importances.csv")
 final_predictions = pd.concat(all_dfs) # list showing how your model performed on every patient the single time it was asked to predict their score without having seen them in training
 final_predictions.to_csv(f"{output_dir}/final_predictions_all_folds.csv")
 
+# Ensure metrics are saved
+metrics_df = pd.DataFrame(all_metrics)
+
+# Calculate averages
+avg_row = pd.DataFrame({
+    'Fold': ['Average'],
+    'Pearson_Correlation': [metrics_df['Pearson_Correlation'].mean()],
+    'Spearman_Correlation': [metrics_df['Spearman_Correlation'].mean()],
+    'R-squared': [metrics_df['R-squared'].mean()],
+    'RMSE': [metrics_df['RMSE'].mean()]
+})
+
+metrics_df = pd.concat([metrics_df, avg_row], ignore_index=True)
+metrics_df.to_csv(f"{output_dir}/fold_metrics.csv", index=False)
