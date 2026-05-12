@@ -27,6 +27,11 @@ timestamp=$(date +"%Y%m%d_%H%M%S")
 # SETUP SCRIPT OUTPUT FOLDER
 output_dir='/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/'$immune_trait'/'$score_type'/script_output_'$timestamp'/'
 mkdir -p $output_dir
+#set 
+mlflowdb_uri='sqlite:////shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlflow.db'
+mlflowdb_artifacts='/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlruns'
+
+
 
 # Look for a free GPU
 echo "Looking for a GPU ... "
@@ -49,7 +54,7 @@ echo "Assigned to GPU: $CUDA_VISIBLE_DEVICES"
 start=$(date)
 
 # SCRIPT
-python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py $immune_trait $score_type $output_dir
+python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py $immune_trait $score_type $output_dir $mlflowdb_uri $mlflowdb_artifacts
 
 # NOTIFY END OF SCRIPT
 #curl -s -d "Done $PBS_JOBID regression_immune_traits.py on cibioGPUQ launched at $start, finished at $(date)" https://ntfy.sh/kmarita
