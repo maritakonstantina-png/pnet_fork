@@ -2,13 +2,13 @@ import os
 import time
 
 immune_traits = [
- # "nk_cells",
- #"t_helper_cells" ,
+  "nk_cells"]#,
+ #"t_helper_cells" ]#,
  #"cd8_t_cells" ,
  #"tfh_cells",
-  "apm1" ,
-  "tem_cells",
-  "a_dc" ]
+  #"apm1" ,
+ # "tem_cells",
+  #"a_dc" ]
   #"tcm_cells" ,
   #"eosinophils",
  # "interferon_cluster_21214954" ,
