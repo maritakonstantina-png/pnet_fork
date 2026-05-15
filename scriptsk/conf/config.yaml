@@ -1,11 +1,8 @@
-trait: "nk_cells"
-score_type: "PLL"
 input_dir: "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/aggregated_scores"
 immune_trait_path: "/shares/CIBIO-Storage/BCG/scratch/kmarita/rstudio/long_matched_immune_traits_EU.csv"
 output_dir: "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet"
 mlflowdb_uri: "sqlite:////shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlflow.db"
 mlflowdb_artifact: "/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlruns"
-loss_fn: "mse"  # e.g., "mse", "l1", or "huber"
 
 params:
   seed: 42
@@ -13,8 +10,12 @@ params:
   lr: 1e-4
   weight_decay: 1e-3
   batch_size: 64
-  epochs: 1
+  epochs: 3000
   early_stopping: True
   input_dropout: 0.2
   n_splits: 5
   random_state: 42
+  loss_fn: "mse"  # "mse", "l1", or "huber"
+  trait: "nk_cells"
+  score_type: "PLL" 
+

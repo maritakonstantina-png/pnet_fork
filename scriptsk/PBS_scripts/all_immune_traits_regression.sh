@@ -53,8 +53,9 @@ echo "Assigned to GPU: $CUDA_VISIBLE_DEVICES"
 # GET START TIME
 start=$(date)
 
-# SCRIPT
-python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py $immune_trait $score_type $output_dir $mlflowdb_uri $mlflowdb_artifacts
+# Decode Hydra args securely to avoid any PBS syntax problems with commas
+hydra_args=$(echo "$hydra_b64" | base64 --decode)
 
-# NOTIFY END OF SCRIPT
-#curl -s -d "Done $PBS_JOBID regression_immune_traits.py on cibioGPUQ launched at $start, finished at $(date)" https://ntfy.sh/kmarita
+# SCRIPT
+# python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py params.trait=$immune_trait params.score_type=$score_type output_dir=$output_dir $hydra_args
+echo "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py -m params.trait=$immune_trait params.score_type=$score_type output_dir=$output_dir $hydra_args"
