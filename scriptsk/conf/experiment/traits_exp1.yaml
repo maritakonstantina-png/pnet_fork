@@ -17,3 +17,4 @@ hydra:
     parameters.loss_fn: mae
     parameters.trait: "nk_cells"
     parameters.score_type: "PLL" 
+    parameters.normalize: True
