@@ -1,0 +1,4 @@
+- params.trait=nk_cells
+- params.score_type=PLL
+- output_dir=temp
+- +sweep=traits_exp1

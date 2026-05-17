@@ -57,5 +57,5 @@ start=$(date)
 hydra_args=$(echo "$hydra_b64" | base64 --decode)
 
 # SCRIPT
-# python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py params.trait=$immune_trait params.score_type=$score_type output_dir=$output_dir $hydra_args
-echo "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py -m params.trait=$immune_trait params.score_type=$score_type output_dir=$output_dir $hydra_args"
+python /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/regression_immune_traits.py parameters.trait=$immune_trait parameters.score_type=$score_type runtime.output_dir=$output_dir $hydra_args
+

@@ -23,22 +23,25 @@ from util import util
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg: DictConfig):
     # Set arguments from Hydra config
-    input_dir = cfg.input_dir
-    immune_trait_path = cfg.immune_trait_path
-    output_dir = cfg.output_dir
+    input_dir = cfg.runtime.input_dir
+    immune_trait_path = cfg.runtime.immune_trait_path
+    output_dir = cfg.runtime.output_dir
     
-    mlflowdb_uri = cfg.mlflowdb_uri
-    mlflowdb_artifact = cfg.mlflowdb_artifact
+    mlflowdb_uri = cfg.runtime.mlflowdb_uri
+    mlflowdb_artifact = cfg.runtime.mlflowdb_artifact
 
     # Interpret the custom loss function parameter
-    if cfg.params.loss_fn.lower() == "mse":
+    loss_fn_str = str(cfg.parameters.loss_fn).lower().strip()
+    if "mse" in loss_fn_str:
         loss_fn = nn.MSELoss()
-    elif cfg.params.loss_fn.lower() == "l1": #mae
+    elif "l1" in loss_fn_str or "mae" in loss_fn_str: #mae
         loss_fn = nn.L1Loss()
-    elif cfg.params.loss_fn.lower() == "huber":
+    elif "huber" in loss_fn_str:
         loss_fn = nn.HuberLoss()
+    elif "pnet" in loss_fn_str:
+        loss_fn = None
     else:
-        loss_fn = None # will default back to Pnet.py logic if unknown 
+        raise NotImplementedError(f"Loss function {loss_fn_str} not implemented.")
 
     mlflow.set_tracking_uri(mlflowdb_uri)
 
@@ -48,8 +51,8 @@ def main(cfg: DictConfig):
         mlflow.create_experiment(experiment_name, artifact_location=mlflowdb_artifact)
     mlflow.set_experiment(experiment_name)
 
-    params = dict(cfg.params)
-    # No need to overwrite params["loss_fn"] since we are now logging standard dict(cfg.params)
+    params = dict(cfg.parameters)
+    # No need to overwrite params["loss_fn"] since we are now logging standard dict(cfg.parameters)
     score_type = params['score_type']
     trait = params['trait']
     #create input for the model, the aggregated scores for each gene (max, min, avg, delta, sd), divided by hap1 and hap2 
