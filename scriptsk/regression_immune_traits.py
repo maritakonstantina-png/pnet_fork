@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, r2_score
 from scipy.stats import pearsonr, spearmanr
+from sklearn.preprocessing import StandardScaler
 import mlflow 
 import time
 
@@ -55,6 +56,7 @@ def main(cfg: DictConfig):
     # No need to overwrite params["loss_fn"] since we are now logging standard dict(cfg.parameters)
     score_type = params['score_type']
     trait = params['trait']
+    normalize = params.get('normalize', False)  # Default to False (use experiment to enable)
     #create input for the model, the aggregated scores for each gene (max, min, avg, delta, sd), divided by hap1 and hap2 
     genetic_data = {}
     for agg_func in ["avg", "sd", "max", "min", "delta"]:
@@ -81,6 +83,11 @@ def main(cfg: DictConfig):
     n_splits = params['n_splits']
     kf = KFold(n_splits=n_splits, shuffle=True, random_state=params['random_state'])
 
+    # Scalers for input features
+    scalers_genetic_data = {}
+    # Scaler for target
+    target_scaler = StandardScaler()
+
     # Set the run name explicitly to differentiate traits and scores
     run_name = f"{trait}_{score_type}"
 
@@ -94,10 +101,44 @@ def main(cfg: DictConfig):
             train_sample = samples[train_index].tolist()
             test_sample = samples[test_index].tolist()
             
+            # Create a copy of genetic data for this fold
+            genetic_data_for_training = genetic_data.copy()
+            immune_trait_fold = immune_trait.copy()
+            
+            # Apply normalization if enabled
+            if normalize:
+                # Normalize genetic data
+                for key in genetic_data_for_training.keys():
+                    train_data = genetic_data_for_training[key].loc[train_sample].values
+                    scaler = StandardScaler()
+                    scaler.fit(train_data)
+                    
+                    # Create normalized version
+                    normalized_data = genetic_data_for_training[key].copy()
+                    normalized_data.loc[train_sample] = scaler.transform(train_data)
+                    normalized_data.loc[test_sample] = scaler.transform(
+                        genetic_data_for_training[key].loc[test_sample].values
+                    )
+                    genetic_data_for_training[key] = normalized_data
+                    scalers_genetic_data[f"{key}_fold{fold}"] = scaler
+                
+                # Normalize target
+                y_train = immune_trait.loc[train_sample].values.reshape(-1, 1)
+                y_test = immune_trait.loc[test_sample].values.reshape(-1, 1)
+                
+                target_scaler_fold = StandardScaler()
+                target_scaler_fold.fit(y_train)
+                
+                immune_trait_fold.loc[train_sample] = target_scaler_fold.transform(y_train).flatten()
+                immune_trait_fold.loc[test_sample] = target_scaler_fold.transform(y_test).flatten()
+            else:
+                # No normalization - use original data
+                target_scaler_fold = None
+            
             #run pnet
             model, train_scores, test_scores, train_dataset, test_dataset = Pnet.run(
-                genetic_data, 
-                immune_trait, 
+                genetic_data_for_training, 
+                immune_trait_fold, 
                 seed=params['seed'],     
                 dropout=params['dropout'], 
                 lr=params['lr'], 
@@ -115,17 +156,26 @@ def main(cfg: DictConfig):
             model.to('cpu')
             
             x_train = train_dataset.x
-            y_train = train_dataset.y
-            additional_train = train_dataset.additional  # because on genetic_data i have more than one inputs(avg, min etc.)
+            y_train_pred = train_dataset.y
+            additional_train = train_dataset.additional
             x_test = test_dataset.x
-            y_test = test_dataset.y
+            y_test_pred = test_dataset.y
             additional_test = test_dataset.additional
 
             print(f"Starting forward pass on the cpu for fold {fold}")
-            #predict. test_datset.x is assigned the first key pnet receives which is avg_hap1 and the rest 9 are assigned to test_dataset.additional
+            #predict
             y_pred = model.predict(test_dataset.x, test_dataset.additional).detach()
+            
+            # Inverse transform if normalization was applied
+            if normalize and target_scaler_fold is not None:
+                y_pred = target_scaler_fold.inverse_transform(y_pred.cpu().numpy().reshape(-1, 1)).flatten()
+                y_test_original = target_scaler_fold.inverse_transform(test_dataset.y.reshape(-1, 1)).flatten()
+            else:
+                y_pred = y_pred.cpu().numpy().flatten() if hasattr(y_pred, 'cpu') else y_pred
+                y_test_original = test_dataset.y
+            
             df = pd.DataFrame(index=test_dataset.input_df.index)
-            df['y_test'] = test_dataset.y
+            df['y_test'] = y_test_original
             df['y_pred'] = y_pred
             #connect the empty list to the values of y_test and y_pred
             all_dfs.append(df)
