@@ -129,8 +129,38 @@ def main(cfg: DictConfig):
                 target_scaler_fold = StandardScaler()
                 target_scaler_fold.fit(y_train)
                 
-                immune_trait_fold.loc[train_sample] = target_scaler_fold.transform(y_train).flatten()
-                immune_trait_fold.loc[test_sample] = target_scaler_fold.transform(y_test).flatten()
+                # Assign 2D arrays (n_samples, 1) into the single-column DataFrame to avoid shape mismatches
+                immune_trait_fold.loc[train_sample] = target_scaler_fold.transform(y_train)
+                immune_trait_fold.loc[test_sample] = target_scaler_fold.transform(y_test)
+                # Plot normalized inputs and target distributions for inspection
+                try:
+                    os.makedirs(output_dir, exist_ok=True)
+                    keys = list(genetic_data_for_training.keys())
+                    n_keys = len(keys)
+                    ncols = 5
+                    nrows = (n_keys + ncols - 1) // ncols
+                    plt.figure(figsize=(4 * ncols, 3 * (nrows + 1)))
+                    for i, key in enumerate(keys, start=1):
+                        ax = plt.subplot(nrows + 1, ncols, i)
+                        data_vals = genetic_data_for_training[key].values.flatten()
+                        ax.hist(data_vals, bins=100, density=True, color='C0', alpha=0.7)
+                        ax.set_title(key)
+                        ax.set_xlim(-5, 5)
+                    # Plot target on its own row
+                    ax = plt.subplot(nrows + 1, 1, nrows + 1)
+                    target_vals = immune_trait_fold.loc[train_sample].values.flatten()
+                    ax.hist(target_vals, bins=100, density=True, color='C3', alpha=0.7)
+                    ax.set_title(f"target_{trait}_fold{fold}")
+                    ax.set_xlim(-5, 5)
+                    plt.tight_layout()
+                    plot_path = os.path.join(output_dir, f"fold_{fold}_normalization_plot.png")
+                    plt.savefig(plot_path, dpi=150)
+                    plt.close()
+                    print("normalization plot done")
+                except Exception:
+                    # Don't crash the run on plotting errors
+                    import traceback
+                    traceback.print_exc()
             else:
                 # No normalization - use original data
                 target_scaler_fold = None
