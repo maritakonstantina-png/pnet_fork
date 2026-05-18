@@ -1,0 +1,21 @@
+runtime:
+  input_dir: /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/aggregated_scores
+  immune_trait_path: /shares/CIBIO-Storage/BCG/scratch/kmarita/rstudio/long_matched_immune_traits_EU.csv
+  output_dir: /shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet
+  mlflowdb_uri: sqlite:////shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlflow.db
+  mlflowdb_artifact: /shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlruns
+parameters:
+  seed: 42
+  dropout: 0.3
+  lr: 5.0e-05
+  weight_decay: 0.01
+  batch_size: 64
+  epochs: 3000
+  early_stopping: true
+  input_dropout: 0.3
+  n_splits: 5
+  random_state: 42
+  loss_fn: mse
+  trait: nk_cells
+  score_type: PLL
+  normalize: false
