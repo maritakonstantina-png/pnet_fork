@@ -1,0 +1,6 @@
+input_dir: "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/aggregated_scores"
+#cancers path??
+output_dir: "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet_bc"
+mlflowdb_uri: "sqlite:////shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlflow.db"
+mlflowdb_artifact: "/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlruns"
+#should put them in a dir for bc??

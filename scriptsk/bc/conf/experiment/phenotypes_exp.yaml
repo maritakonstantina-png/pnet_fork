@@ -1,0 +1,19 @@
+# @package _global_
+
+hydra:
+ mode: MULTIRUN
+ sweeper:
+  params:
+    parameters.seed: 42
+    parameters.dropout: 0.3
+    parameters.lr: 0.00005, 0.00001
+    parameters.weight_decay: 0.0001
+    parameters.batch_size: 64
+    parameters.epochs: 3000
+    parameters.early_stopping: True
+    parameters.input_dropout: 0.3
+    parameters.n_splits: 5
+    parameters.random_state: 42
+    parameters.loss_fn: huber 
+    parameters.normalize: True
+    #parameter for phenotype or cancer??

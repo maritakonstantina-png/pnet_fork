@@ -1,0 +1,13 @@
+seed: 42
+dropout: 0.3
+lr: 0.00005
+weight_decay: 0.01
+batch_size: 64
+epochs: 3000
+early_stopping: True
+input_dropout: 0.3
+n_splits: 5
+random_state: 42
+loss_fn: "mse"  # "mse", "l1", or "huber"
+#cancer??
+
