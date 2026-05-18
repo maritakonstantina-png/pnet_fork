@@ -1,0 +1,5 @@
+input_dir: "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/aggregated_scores"
+immune_trait_path: "/shares/CIBIO-Storage/BCG/scratch/kmarita/rstudio/long_matched_immune_traits_EU.csv"
+output_dir: "/shares/CIBIO-Storage/BCG/scratch/kmarita/code/pnet_fork/scriptsk/output_pnet"
+mlflowdb_uri: "sqlite:////shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlflow.db"
+mlflowdb_artifact: "/shares/CIBIO-Storage/BCG/scratch/kmarita/data/pnet_fork/mlruns"
