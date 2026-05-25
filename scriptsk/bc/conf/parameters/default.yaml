@@ -1,14 +1,14 @@
 seed: 42
-dropout: 0.3
-lr: 0.00005
-weight_decay: 0.01
-batch_size: 64
+dropout: 0.2
+lr: 1e-3
+weight_decay: 1e-3
+batch_size: 128
 epochs: 3000
 early_stopping: True
-input_dropout: 0.3
+input_dropout: 0.5
 n_splits: 5
 random_state: 42
 loss_fn: "default"  # "default" or "bce"
 pathway: null  # set to a pathway name to run a single target
-run_all_pathways: False
+run_all_pathways: True
 

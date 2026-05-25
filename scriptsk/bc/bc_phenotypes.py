@@ -38,7 +38,14 @@ def main(cfg: DictConfig):
     run_all_pathways = params.get("run_all_pathways", False)
     n_splits = params.get("n_splits", 5)
     random_state = params.get("random_state", 42)
-    loss_fn = _parse_loss_fn(params.get("loss_fn", "default"))
+    loss_fn_str = params.get("loss_fn", "default")
+    
+    if loss_fn_str.lower() in ["default", "none", "null"]:
+        loss_fn = None
+    elif loss_fn_str.lower() in ["bce"]:
+        loss_fn = nn.BCEWithLogitsLoss()
+    else:
+        loss_fn = None
 
     mlflow.set_tracking_uri(mlflowdb_uri)
 
@@ -58,10 +65,23 @@ def main(cfg: DictConfig):
         genetic_data[f"{agg_func}_hap2"] = scores_hap2
 
     # Load phenotype matrix
-    df_pheno = pd.read_csv(phenotypes_path)
+    # Added sep to handle tab or space separated files
+    df_pheno = pd.read_csv(phenotypes_path, sep=r'\s+')
     if id_column in df_pheno.columns:
         df_pheno = df_pheno.set_index(id_column)
+    
+    # Strip phenotypic indices to 15 characters to match genetic format
+    # Pheno: TCGA-HT-7877-10A-01  -> TCGA-HT-7877-10
+    # Genetic: TCGA-RZ-AB0B-10A-01D-A39Z-08 -> TCGA-RZ-AB0B-10
+    df_pheno.index = df_pheno.index.str[:15]
+    
     df_pheno = df_pheno.apply(pd.to_numeric, errors="coerce")
+    
+    # Pre-process genetic data index to match 15 characters as well
+    for key in genetic_data:
+        genetic_data[key].index = genetic_data[key].index.str[:15]
+        # Drop duplicates if multiple aliquots per patient exist
+        genetic_data[key] = genetic_data[key][~genetic_data[key].index.duplicated(keep='first')]
 
     if pathway:
         pathways = [pathway]
@@ -128,7 +148,9 @@ def main(cfg: DictConfig):
                     loss_fn=loss_fn,
                 )
 
-                results = Pnet.evaluate_and_interpret(model, test_dataset, [pathway])
+                
+                # To prevent util.py list string concatenation error, pass target name as string if needed
+                results = Pnet.evaluate_and_interpret(model, test_dataset, pathway)
 
                 y_true = np.asarray(results["y_true"]).ravel()
                 pred_proba = np.asarray(results["pred_proba"]).ravel()
@@ -220,7 +242,7 @@ def main(cfg: DictConfig):
                 util.plot_mean_roc_curve(
                     all_y_true,
                     all_pred_proba,
-                    [pathway],
+                    pathway,  # Pass as string, not list, to avoid util.py errors
                     os.path.join(pathway_output_dir, "roc_auc_curve.pdf"),
                 )
                 util.plot_mean_prc_curve(
