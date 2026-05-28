@@ -8,11 +8,12 @@ import mlflow
 import time
 import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_auc_score, average_precision_score, accuracy_score
+from sklearn.metrics import roc_auc_score, average_precision_score, accuracy_score, confusion_matrix, ConfusionMatrixDisplay, balanced_accuracy_score, matthews_corrcoef
 
 
 import hydra
 from omegaconf import DictConfig
+import torch
 import torch.nn as nn
 
 sys.path.append(os.path.dirname(__file__) + "/../../src/")
@@ -109,6 +110,9 @@ def main(cfg: DictConfig):
             print(f"Skipping pathway {pathway}: only one class present")
             continue
 
+        # Calculate baseline prevalence (proportion of positive cases)
+        baseline_prevalence = np.sum(labels) / len(labels)
+
         kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
 
         pathway_output_dir = os.path.join(output_dir, pathway)
@@ -138,8 +142,8 @@ def main(cfg: DictConfig):
                     dropout=params.get("dropout", 0.3),
                     lr=params.get("lr", 1e-4),
                     weight_decay=params.get("weight_decay", 1e-4),
-                    batch_size=params.get("batch_size", 64),
-                    epochs=params.get("epochs", 1000),
+                    batch_size=params.get("batch_size", 128),
+                    epochs=params.get("epochs", 3000),
                     early_stopping=params.get("early_stopping", True),
                     train_inds=train_sample,
                     test_inds=test_sample,
@@ -152,13 +156,23 @@ def main(cfg: DictConfig):
                 # To prevent util.py list string concatenation error, pass target name as string if needed
                 results = Pnet.evaluate_and_interpret(model, test_dataset, pathway)
 
+                # Save loss curves for this fold using util
+                util.draw_loss(train_scores, test_scores, save=os.path.join(pathway_output_dir, f"fold_{fold}_loss_curves.pdf"))
+
                 y_true = np.asarray(results["y_true"]).ravel()
                 pred_proba = np.asarray(results["pred_proba"]).ravel()
 
                 # Metrics
                 roc_auc = roc_auc_score(y_true, pred_proba)
                 prc_auc = average_precision_score(y_true, pred_proba)
-                acc = accuracy_score(y_true, (pred_proba >= 0.5).astype(int))
+                pred_class = (pred_proba >= 0.5).astype(int)
+                acc = accuracy_score(y_true, pred_class)
+                balanced_acc = balanced_accuracy_score(y_true, pred_class)
+                mcc = matthews_corrcoef(y_true, pred_class)
+                
+                # Prevalence-adjusted AUCPR metrics
+                aucpr_normalized = prc_auc / baseline_prevalence if baseline_prevalence > 0 else 0
+                aucpr_adjusted = (prc_auc - baseline_prevalence) / (1 - baseline_prevalence) if baseline_prevalence < 1 else 0
 
                 all_metrics.append(
                     {
@@ -166,6 +180,10 @@ def main(cfg: DictConfig):
                         "ROC_AUC": roc_auc,
                         "PRC_AUC": prc_auc,
                         "Accuracy": acc,
+                        "Balanced_Accuracy": balanced_acc,
+                        "MCC": mcc,
+                        "AUCPR_Normalized": aucpr_normalized,
+                        "AUCPR_Adjusted": aucpr_adjusted,
                         "Train_loss_epochs": train_scores,
                         "Test_loss_epochs": test_scores,
                     }
@@ -177,6 +195,10 @@ def main(cfg: DictConfig):
                         f"fold_{fold}_roc_auc": roc_auc,
                         f"fold_{fold}_prc_auc": prc_auc,
                         f"fold_{fold}_accuracy": acc,
+                        f"fold_{fold}_balanced_accuracy": balanced_acc,
+                        f"fold_{fold}_mcc": mcc,
+                        f"fold_{fold}_aucpr_normalized": aucpr_normalized,
+                        f"fold_{fold}_aucpr_adjusted": aucpr_adjusted,
                     }
                 )
 
@@ -212,6 +234,10 @@ def main(cfg: DictConfig):
                     "ROC_AUC": [metrics_df["ROC_AUC"].mean()],
                     "PRC_AUC": [metrics_df["PRC_AUC"].mean()],
                     "Accuracy": [metrics_df["Accuracy"].mean()],
+                    "Balanced_Accuracy": [metrics_df["Balanced_Accuracy"].mean()],
+                    "MCC": [metrics_df["MCC"].mean()],
+                    "AUCPR_Normalized": [metrics_df["AUCPR_Normalized"].mean()],
+                    "AUCPR_Adjusted": [metrics_df["AUCPR_Adjusted"].mean()],
                 }
             )
             metrics_df = pd.concat([metrics_df, avg_row], ignore_index=True)
@@ -223,6 +249,11 @@ def main(cfg: DictConfig):
                     "avg_roc_auc": avg_row["ROC_AUC"].iloc[0],
                     "avg_prc_auc": avg_row["PRC_AUC"].iloc[0],
                     "avg_accuracy": avg_row["Accuracy"].iloc[0],
+                    "avg_balanced_accuracy": avg_row["Balanced_Accuracy"].iloc[0],
+                    "avg_mcc": avg_row["MCC"].iloc[0],
+                    "avg_aucpr_normalized": avg_row["AUCPR_Normalized"].iloc[0],
+                    "avg_aucpr_adjusted": avg_row["AUCPR_Adjusted"].iloc[0],
+                    "baseline_prevalence": baseline_prevalence,
                 }
             )
 
@@ -237,17 +268,43 @@ def main(cfg: DictConfig):
             )
             avg_gene_importances.to_csv(os.path.join(pathway_output_dir, "gene_importances.csv"))
 
+            # Plot top 20 gene importances visually
+            plt.figure(figsize=(10, 6))
+            if not avg_gene_importances.empty:
+                top_genes = avg_gene_importances.squeeze().sort_values(ascending=False).head(20)
+                top_genes.plot(kind='bar', color='darkcyan')
+                plt.title(f"Top 20 Gene Importances - {pathway}")
+                plt.ylabel("Importance Score")
+                plt.tight_layout()
+                plt.savefig(os.path.join(pathway_output_dir, "top_20_gene_importances.pdf"))
+                plt.close()
+
+            # Plot aggregated Confusion Matrix across all folds
+            if all_y_true and all_pred_proba:
+                flat_y_true = np.concatenate(all_y_true)
+                flat_pred_class = (np.concatenate(all_pred_proba) >= 0.5).astype(int)
+                cm = confusion_matrix(flat_y_true, flat_pred_class)
+                disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+                disp.plot(cmap='Blues')
+                plt.title(f"Aggregated Confusion Matrix - {pathway}")
+                plt.savefig(os.path.join(pathway_output_dir, "confusion_matrix.pdf"))
+                plt.close()
+
             # Plot mean ROC/PRC curves
             if all_y_true and all_pred_proba:
+                # util.py expects PyTorch tensors with .cpu().numpy()
+                all_y_true_t = [torch.tensor(y) for y in all_y_true]
+                all_pred_proba_t = [torch.tensor(p) for p in all_pred_proba]
+                
                 util.plot_mean_roc_curve(
-                    all_y_true,
-                    all_pred_proba,
+                    all_y_true_t,
+                    all_pred_proba_t,
                     pathway,  # Pass as string, not list, to avoid util.py errors
                     os.path.join(pathway_output_dir, "roc_auc_curve.pdf"),
                 )
                 util.plot_mean_prc_curve(
-                    all_y_true,
-                    all_pred_proba,
+                    all_y_true_t,
+                    all_pred_proba_t,
                     os.path.join(pathway_output_dir, "prc_auc_curve.pdf"),
                 )
 
