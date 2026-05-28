@@ -225,6 +225,16 @@ def main(cfg: DictConfig):
                 all_layer_importance_scores.append(results["layer_importance_scores"])
                 all_y_true.append(y_true)
                 all_pred_proba.append(pred_proba)
+                
+                # Log model for this fold to MLflow artifacts
+                mlflow.pytorch.log_model(model, f"fold_{fold}_model")
+                
+                # Log fold-specific artifacts
+                mlflow.log_artifact(os.path.join(pathway_output_dir, f"fold_{fold}_predictions.csv"))
+                mlflow.log_artifact(os.path.join(pathway_output_dir, f"fold_{fold}_loss_curves.pdf"))
+                mlflow.log_artifact(os.path.join(pathway_output_dir, f"fold_{fold}_gene_feature_importances.csv"))
+                mlflow.log_artifact(os.path.join(pathway_output_dir, f"fold_{fold}_additional_feature_importances.csv"))
+                mlflow.log_artifact(os.path.join(pathway_output_dir, f"fold_{fold}_gene_importances.csv"))
 
             # Aggregate metrics
             metrics_df = pd.DataFrame(all_metrics)
@@ -242,6 +252,9 @@ def main(cfg: DictConfig):
             )
             metrics_df = pd.concat([metrics_df, avg_row], ignore_index=True)
             metrics_df.to_csv(os.path.join(pathway_output_dir, "fold_metrics.csv"), index=False)
+            
+            # Log metrics CSV to MLflow
+            mlflow.log_artifact(os.path.join(pathway_output_dir, "fold_metrics.csv"))
 
             # Log averages to MLflow
             mlflow.log_metrics(
@@ -267,6 +280,11 @@ def main(cfg: DictConfig):
                 os.path.join(pathway_output_dir, "additional_feature_importances.csv")
             )
             avg_gene_importances.to_csv(os.path.join(pathway_output_dir, "gene_importances.csv"))
+            
+            # Log average importance CSVs to MLflow
+            mlflow.log_artifact(os.path.join(pathway_output_dir, "gene_feature_importances.csv"))
+            mlflow.log_artifact(os.path.join(pathway_output_dir, "additional_feature_importances.csv"))
+            mlflow.log_artifact(os.path.join(pathway_output_dir, "gene_importances.csv"))
 
             # Plot top 20 gene importances visually
             plt.figure(figsize=(10, 6))
@@ -276,8 +294,10 @@ def main(cfg: DictConfig):
                 plt.title(f"Top 20 Gene Importances - {pathway}")
                 plt.ylabel("Importance Score")
                 plt.tight_layout()
-                plt.savefig(os.path.join(pathway_output_dir, "top_20_gene_importances.pdf"))
+                top_genes_path = os.path.join(pathway_output_dir, "top_20_gene_importances.pdf")
+                plt.savefig(top_genes_path)
                 plt.close()
+                mlflow.log_artifact(top_genes_path)
 
             # Plot aggregated Confusion Matrix across all folds
             if all_y_true and all_pred_proba:
@@ -287,8 +307,10 @@ def main(cfg: DictConfig):
                 disp = ConfusionMatrixDisplay(confusion_matrix=cm)
                 disp.plot(cmap='Blues')
                 plt.title(f"Aggregated Confusion Matrix - {pathway}")
-                plt.savefig(os.path.join(pathway_output_dir, "confusion_matrix.pdf"))
+                cm_path = os.path.join(pathway_output_dir, "confusion_matrix.pdf")
+                plt.savefig(cm_path)
                 plt.close()
+                mlflow.log_artifact(cm_path)
 
             # Plot mean ROC/PRC curves
             if all_y_true and all_pred_proba:
@@ -296,17 +318,24 @@ def main(cfg: DictConfig):
                 all_y_true_t = [torch.tensor(y) for y in all_y_true]
                 all_pred_proba_t = [torch.tensor(p) for p in all_pred_proba]
                 
+                roc_path = os.path.join(pathway_output_dir, "roc_auc_curve.pdf")
+                prc_path = os.path.join(pathway_output_dir, "prc_auc_curve.pdf")
+                
                 util.plot_mean_roc_curve(
                     all_y_true_t,
                     all_pred_proba_t,
                     pathway,  # Pass as string, not list, to avoid util.py errors
-                    os.path.join(pathway_output_dir, "roc_auc_curve.pdf"),
+                    roc_path,
                 )
                 util.plot_mean_prc_curve(
                     all_y_true_t,
                     all_pred_proba_t,
-                    os.path.join(pathway_output_dir, "prc_auc_curve.pdf"),
+                    prc_path,
                 )
+                
+                # Log ROC and PRC curves to MLflow
+                mlflow.log_artifact(roc_path)
+                mlflow.log_artifact(prc_path)
 
             # Log final model
             mlflow.pytorch.log_model(model, "model")
