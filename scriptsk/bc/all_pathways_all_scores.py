@@ -5,9 +5,17 @@ import sys
 import base64
 
 pathways = [
-  "HIPPO"]
+  "HIPPO",
+  "MYC",
+  "NOTCH",
+  "NRF2",
+  "PI3K",
+  "RTK_RAS",
+  "TP53",
+  "TGF_Beta",
+  "WNT"]
 
-score_types = ["PLL"]#,"PLLR"]
+score_types = ["PLL", "PLLR"]
 
 for pathway in pathways: 
     for score in score_types:
