@@ -289,7 +289,7 @@ def main(cfg: DictConfig):
             # Plot top 20 gene importances visually
             plt.figure(figsize=(10, 6))
             if not avg_gene_importances.empty:
-                top_genes = avg_gene_importances.squeeze().sort_values(ascending=False).head(20)
+                top_genes = avg_gene_importances.iloc[:, 0].sort_values(ascending=False).head(20)
                 top_genes.plot(kind='bar', color='darkcyan')
                 plt.title(f"Top 20 Gene Importances - {pathway}")
                 plt.ylabel("Importance Score")
