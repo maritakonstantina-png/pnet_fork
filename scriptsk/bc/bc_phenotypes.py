@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
     random_state = params.get("random_state", 42)
     loss_fn_str = params.get("loss_fn", "default")
     
-    if loss_fn_str.lower() in ["default", "none", "null"]:
+    if loss_fn_str.lower() in ["default"]:
         loss_fn = None
     elif loss_fn_str.lower() in ["bce"]:
         loss_fn = nn.BCEWithLogitsLoss()
@@ -70,23 +70,21 @@ def main(cfg: DictConfig):
             genetic_data[f"{agg_func}_hap1"] = scores_hap1
             genetic_data[f"{agg_func}_hap2"] = scores_hap2
 
-        # Load phenotype matrix
-        # Added sep to handle tab or space separated files
+        
+         #load phenos
         df_pheno = pd.read_csv(phenotypes_path, sep=r'\s+')
         if id_column in df_pheno.columns:
             df_pheno = df_pheno.set_index(id_column)
         
-        # Strip phenotypic indices to 15 characters to match genetic format
-        # Pheno: TCGA-HT-7877-10A-01  -> TCGA-HT-7877-10
-        # Genetic: TCGA-RZ-AB0B-10A-01D-A39Z-08 -> TCGA-RZ-AB0B-10
+        # keep first 15 chars to match the ids of the target
         df_pheno.index = df_pheno.index.str[:15]
         
         df_pheno = df_pheno.apply(pd.to_numeric, errors="coerce")
         
-        # Pre-process genetic data index to match 15 characters as well
+        # also keep the first 15 chars from the input as well
         for key in genetic_data:
             genetic_data[key].index = genetic_data[key].index.str[:15]
-            # Drop duplicates if multiple aliquots per patient exist
+            # keep the first sample that pops up for every patient if there are multiple
             genetic_data[key] = genetic_data[key][~genetic_data[key].index.duplicated(keep='first')]
 
         if pathway:
@@ -99,7 +97,7 @@ def main(cfg: DictConfig):
         for pathway in pathways:
             y_df = df_pheno[[pathway]].dropna()
 
-            # Align genetic data to phenotype samples
+            # keep ids that exist in both input and target
             common_samples = y_df.index.intersection(genetic_data[list(genetic_data.keys())[0]].index)
             y_df = y_df.loc[common_samples]
 
@@ -110,12 +108,7 @@ def main(cfg: DictConfig):
             samples = np.array(common_samples.tolist())
             labels = y_df.loc[samples].values.ravel()
 
-            # Skip if only one class is present
-            if len(np.unique(labels)) < 2:
-                print(f"Skipping pathway {pathway}: only one class present")
-                continue
-
-            # Calculate baseline prevalence (proportion of positive cases)
+            # calculate baseline prevalence, positive class
             baseline_prevalence = np.sum(labels) / len(labels)
 
             kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
@@ -161,7 +154,7 @@ def main(cfg: DictConfig):
                     # To prevent util.py list string concatenation error, pass target name as string if needed
                     results = Pnet.evaluate_and_interpret(model, test_dataset, pathway)
 
-                    # Save loss curves for this fold using util
+                    # Save loss curves for every fold 
                     util.draw_loss(train_scores, test_scores, save=os.path.join(pathway_output_dir, f"fold_{fold}_loss_curves.pdf"))
 
                     y_true = np.asarray(results["y_true"]).ravel()
@@ -175,7 +168,7 @@ def main(cfg: DictConfig):
                     balanced_acc = balanced_accuracy_score(y_true, pred_class)
                     mcc = matthews_corrcoef(y_true, pred_class)
                     
-                    # Prevalence-adjusted AUCPR metrics
+                    # AUCPR metrics
                     aucpr_normalized = prc_auc / baseline_prevalence if baseline_prevalence > 0 else 0
                     aucpr_adjusted = (prc_auc - baseline_prevalence) / (1 - baseline_prevalence) if baseline_prevalence < 1 else 0
 
