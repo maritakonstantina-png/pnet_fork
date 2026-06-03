@@ -10,6 +10,7 @@ def build_query_string(params):
     for k, v in params.items():
         # MLflow param values are stored as strings
         query_parts.append(f"params.{k} = '{v}'")
+    query_parts.append("attributes.status = 'FINISHED'")
     return " and ".join(query_parts)
 
 def search_existing_runs(params, experiment_ids=None):
