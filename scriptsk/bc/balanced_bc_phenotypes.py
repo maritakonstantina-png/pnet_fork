@@ -103,14 +103,25 @@ def main(cfg: DictConfig):
             common_samples = y_df.index.intersection(genetic_data[list(genetic_data.keys())[0]].index)
             y_df = y_df.loc[common_samples]
 
+            # 1. Find the number of samples in the minority class (e.g., the 1000 1s)
+            min_class_count = y_df[pathway].value_counts().min()
+            
+            # 2. Group by the class (0 or 1) and randomly sample exactly 'min_class_count' from each group
+            # We use the existing 'random_state' parameter to ensure the split is reproducible
+            y_df = y_df.groupby(pathway).sample(n=min_class_count, random_state=random_state)
+            
+            # 3. Update common_samples to reflect the new, balanced index
+            common_samples = y_df.index
+
             genetic_data_filtered = {}
             for key, data in genetic_data.items():
+                # This will now only extract the balanced subset of samples
                 genetic_data_filtered[key] = data.loc[common_samples]
 
             samples = np.array(common_samples.tolist())
             labels = y_df.loc[samples].values.ravel()
-
-            # calculate baseline prevalence, positive class
+        
+            # calculate baseline prevalence, positive class (should be 0.5 now cause I have balanced the dataset to have 50% positive and 50% negatives)
             baseline_prevalence = np.sum(labels) / len(labels)
 
             kf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
