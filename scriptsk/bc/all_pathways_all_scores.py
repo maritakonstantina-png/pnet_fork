@@ -13,7 +13,8 @@ pathways = [
   "RTK_RAS",
   "TP53",
   "TGF_Beta",
-  "WNT"]
+  "WNT"
+  ]
 
 score_types = ["PLL", "PLLR"]
 
